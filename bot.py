@@ -1,153 +1,134 @@
+import logging
 from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters,
+)
 
-BOT_TOKEN = "8505361939:AAEn8IiRk5oOeTdW8pC-76_MIHRS8GpG6s4"
-SUPPORT_GROUP_ID = -1003883601919
+# 🔴 ENTER YOUR DETAILS HERE
+BOT_TOKEN = "8505361939:AAGz6PM57UYNUcToS5ET62PlmTYW-ZFeFfA"
+SUPPORT_GROUP_ID = -1003883601919 # Replace with your real group ID
 
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+)
+
+# 🔹 Main Menu Keyboard
 def main_menu_keyboard():
     return ReplyKeyboardMarkup(
-        [["💰 Deposit Issue", "🏦 Withdrawal Issue"], ["❓ Other Issue"]],
-        resize_keyboard=True
+        [
+            ["💰 Deposit Issue", "🏦 Withdrawal Issue"],
+            ["🆔 KYC / Aadhaar Issue", "❓ Other Issue"],
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=True,
     )
 
+# 🔹 /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data.clear()
-    await update.message.reply_text(
-        "🦁 *Welcome to Lion Club Support!*\n\n"
-        "We’re glad to have you here. Our support team is available 24/7 to assist you.\n\n"
-        "Please select your issue type using the buttons below. After that, send all required details in one single message.\n\n"
-        "Thank you for choosing Lion Club 🤝",
-        parse_mode="Markdown",
-        reply_markup=main_menu_keyboard()
+    user = update.effective_user
+    welcome_message = (
+        f"👋 Welcome to Lion Club Support, {user.first_name}!\n\n"
+        "We are here to assist you with any issues related to your account.\n"
+        "Please select the type of issue you are facing from the menu below."
     )
+    await update.message.reply_text(welcome_message, reply_markup=main_menu_keyboard())
 
-async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.message.from_user
-    text = update.message.text or ""
+# 🔹 Handle button selection
+async def handle_issue_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
 
-    if text in ["💰 Deposit Issue", "🏦 Withdrawal Issue", "❓ Other Issue"]:
-        context.user_data["category"] = text
-        context.user_data["submitted"] = False
-
-        if text == "💰 Deposit Issue":
-            await update.message.reply_text(
-                "💰 *Deposit Issue Selected*\n\n"
-                "Please provide the following details:\n"
-                "1️⃣ Your UID\n"
-                "2️⃣ Payment Screenshot\n"
-                "3️⃣ In-game Deposit Screenshot\n\n"
-                "Please send all the information in one single message, including your UID and screenshots.",
-                parse_mode="Markdown"
-            )
-
-        elif text == "🏦 Withdrawal Issue":
-            await update.message.reply_text(
-                "🏦 *Withdrawal Issue Selected*\n\n"
-                "Please provide the following details:\n"
-                "1️⃣ Your UID\n"
-                "2️⃣ Withdrawal Screenshot\n\n"
-                "Please send all the information in one single message, including your UID and screenshot.",
-                parse_mode="Markdown"
-            )
-
-        else:
-            await update.message.reply_text(
-                "❓ *Other Issue Selected*\n\n"
-                "Please describe your issue clearly and attach any relevant screenshots.\n\n"
-                "Please send all the information in one single message.",
-                parse_mode="Markdown"
-            )
-        return
-
-    category = context.user_data.get("category")
-
-    if not category:
-        await update.message.reply_text(
-            "⚠️ Please first select your issue type using the buttons below.",
-            reply_markup=main_menu_keyboard()
+    if text == "💰 Deposit Issue":
+        message = (
+            "💰 *Deposit Issue Selected*\n\n"
+            "Please send the following details in *one single message*:\n"
+            "• Your UID\n"
+            "• Payment Screenshot\n"
+            "• In-game Deposit Screenshot\n\n"
+            "⚠️ Make sure all information and screenshots are in the *same message*."
         )
-        return
-
-    if context.user_data.get("submitted"):
-        await update.message.reply_text(
-            "⏳ Please be patient. Our support team is already working on your issue and will resolve it as quickly as possible."
+    elif text == "🏦 Withdrawal Issue":
+        message = (
+            "🏦 *Withdrawal Issue Selected*\n\n"
+            "Please send the following details in *one single message*:\n"
+            "• Your UID\n"
+            "• Withdrawal Screenshot\n\n"
+            "⚠️ Make sure all information and screenshots are in the *same message*."
         )
-        return
-
-    context.user_data["submitted"] = True
-
-    full_name = user.full_name
-    username = f"@{user.username}" if user.username else "No username"
-    user_id = user.id
-
-    group_text = (
-        f"📩 *New Support Message*\n\n"
-        f"👤 Name: {full_name}\n"
-        f"🔗 Username: {username}\n"
-        f"🆔 Telegram ID: {user_id}\n"
-        f"📂 Issue Type: {category}\n\n"
-        f"💬 Message:\n{text if text else '(Media / Screenshot sent)'}"
-    )
-
-    sent_msg = None
-
-    if update.message.photo:
-        photo = update.message.photo[-1].file_id
-        sent_msg = await context.bot.send_photo(
-            chat_id=SUPPORT_GROUP_ID,
-            photo=photo,
-            caption=group_text,
-            parse_mode="Markdown"
+    elif text == "🆔 KYC / Aadhaar Issue":
+        message = (
+            "🆔 *KYC / Aadhaar Issue Selected*\n\n"
+            "Please send the following details in *one single message*:\n"
+            "• Your UID\n"
+            "• Screenshot of the issue\n"
+            "• A short description of the problem\n\n"
+            "⚠️ Make sure all information and screenshots are in the *same message*."
         )
-    elif update.message.document:
-        doc = update.message.document.file_id
-        sent_msg = await context.bot.send_document(
-            chat_id=SUPPORT_GROUP_ID,
-            document=doc,
-            caption=group_text,
-            parse_mode="Markdown"
+    elif text == "❓ Other Issue":
+        message = (
+            "❓ *Other Issue Selected*\n\n"
+            "Please describe your issue clearly and send any relevant screenshots\n"
+            "in *one single message*."
         )
     else:
-        sent_msg = await context.bot.send_message(
+        return
+
+    context.user_data["issue_type"] = text
+    await update.message.reply_text(message, parse_mode="Markdown")
+
+# 🔹 Forward user message to support group
+async def forward_to_support_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    issue_type = context.user_data.get("issue_type", "Not selected")
+
+    header = (
+        "📩 *New Support Request*\n\n"
+        f"👤 Name: {user.first_name or ''} {user.last_name or ''}\n"
+        f"🔗 Username: @{user.username if user.username else 'Not available'}\n"
+        f"🆔 User ID: {user.id}\n"
+        f"📌 Issue Type: {issue_type}\n\n"
+        "📝 *User Message:*"
+    )
+
+    # Forward text + media
+    if update.message.text:
+        await context.bot.send_message(
             chat_id=SUPPORT_GROUP_ID,
-            text=group_text,
-            parse_mode="Markdown"
+            text=f"{header}\n{update.message.text}",
+            parse_mode="Markdown",
         )
+    else:
+        await context.bot.send_message(
+            chat_id=SUPPORT_GROUP_ID,
+            text=header,
+            parse_mode="Markdown",
+        )
+        await update.message.forward(chat_id=SUPPORT_GROUP_ID)
 
-    context.application.bot_data[sent_msg.message_id] = {
-        "user_id": user_id
-    }
-
+    # Polite waiting reply to user
     await update.message.reply_text(
-        "Please be patient. Our support team is working on your issue and will resolve it as quickly as possible.\n\n"
-        "Thank you for being a part of the Lion Club family."
+        "🙏 Thank you for contacting Lion Club Support.\n"
+        "Our team is reviewing your issue and will assist you shortly.\n"
+        "Please be patient — we are working on your problem."
     )
 
-async def handle_group_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.chat_id != SUPPORT_GROUP_ID:
-        return
-    if not update.message.reply_to_message:
-        return
-
-    replied_msg_id = update.message.reply_to_message.message_id
-    if replied_msg_id not in context.application.bot_data:
-        return
-
-    user_chat_id = context.application.bot_data[replied_msg_id]["user_id"]
-    reply_text = update.message.text or ""
-
-    await context.bot.send_message(
-        chat_id=user_chat_id,
-        text=reply_text
-    )
-
+# 🔹 Main function
 def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.ChatType.PRIVATE & filters.ALL, handle_user_message))
-    app.add_handler(MessageHandler(filters.ChatType.GROUPS & filters.REPLY, handle_group_reply))
-    print("🤖 Lion Club Support Bot is running...")
-    app.run_polling()
+    application = Application.builder().token(BOT_TOKEN).build()
+
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_issue_selection)
+    )
+    application.add_handler(
+        MessageHandler(filters.ALL & ~filters.COMMAND, forward_to_support_group)
+    )
+
+    application.run_polling()
 
 if __name__ == "__main__":
-    main()
+    main()   
