@@ -1,8 +1,8 @@
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
-BOT_TOKEN = "PASTE_YOUR_BOT_TOKEN_HERE"
-SUPPORT_GROUP_ID = -1001234567890
+BOT_TOKEN = "8505361939:AAEn8IiRk5oOeTdW8pC-76_MIHRS8GpG6s4"
+SUPPORT_GROUP_ID = -1003883601919
 
 def main_menu_keyboard():
     return ReplyKeyboardMarkup(
