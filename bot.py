@@ -1,11 +1,12 @@
 # bot.py
 import logging
+import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, filters
 
-# 🔴 Apna bot token aur group ID yahan daalein
+# 🔴 Configuration
 BOT_TOKEN = "8252550418:AAFR5FJ2h3zFsmOfcqF-j8D_3KyM-tc2_II"
-SUPPORT_GROUP_ID = -1003883601919  # Replace with your group ID
+SUPPORT_GROUP_ID = -1003883601919 
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -70,11 +71,17 @@ async def forward_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # 🔹 Main function
 def main():
+    # Build application
     app = Application.builder().token(BOT_TOKEN).build()
+    
+    # Add handlers
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, forward_message))
-    app.run_polling()
+    
+    # Start the bot
+    print("Bot is running...")
+    app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
     main()
