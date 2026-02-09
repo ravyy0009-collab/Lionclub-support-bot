@@ -9,8 +9,8 @@ from telegram.ext import (
 )
 
 # 🔴 ENTER YOUR DETAILS HERE
-BOT_TOKEN = "8505361939:AAGz6PM57UYNUcToS5ET62PlmTYW-ZFeFfA"
-SUPPORT_GROUP_ID = -1003883601919 # Replace with your real group ID
+BOT_TOKEN = "8505361939:AAH-OefrVX1IN0w9TYC6lE4v2Ig0rX5DN6Q"
+SUPPORT_GROUP_ID = -1003883601919  # Replace with your real group ID
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -131,4 +131,4 @@ def main():
     application.run_polling()
 
 if __name__ == "__main__":
-    main()   
+    main()
