@@ -1,53 +1,111 @@
-# bot.py
+# bot_two_way.py
 import logging
-import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, filters
+from telegram.ext import (
+    Application, CommandHandler, CallbackQueryHandler, MessageHandler,
+    ContextTypes, filters
+)
 
 # 🔴 Configuration
-BOT_TOKEN = "8252550418:AAFR5FJ2h3zFsmOfcqF-j8D_3KyM-tc2_II"
-SUPPORT_GROUP_ID = -1003883601919 
+BOT_TOKEN = "8252550418:AAFR5FJ2h3zFsmOfcqF-j8D_3KyM-tc2_II"  # ⚠️ Replace with your bot token
+SUPPORT_GROUP_ID = -1003883601919  # ⚠️ Replace with your support group ID
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
 )
 
-# 🔹 Buttons
-def issue_keyboard():
+# 🔹 Language & Issue Buttons
+def language_keyboard():
     keyboard = [
-        [InlineKeyboardButton("💰 Deposit Issue", callback_data="Deposit")],
-        [InlineKeyboardButton("🏦 Withdrawal Issue", callback_data="Withdrawal")],
-        [InlineKeyboardButton("❓ Other Issue", callback_data="Other")],
+        [InlineKeyboardButton("English 🇬🇧", callback_data="lang_en")],
+        [InlineKeyboardButton("हिंदी 🇮🇳", callback_data="lang_hi")],
+        [InlineKeyboardButton("Hinglish 📝", callback_data="lang_hin")],
     ]
+    return InlineKeyboardMarkup(keyboard)
+
+def issue_keyboard(lang="en"):
+    if lang == "hi":
+        keyboard = [
+            [InlineKeyboardButton("💰 डिपॉज़िट समस्या", callback_data="Deposit")],
+            [InlineKeyboardButton("🏦 विदड्रॉवल समस्या", callback_data="Withdrawal")],
+            [InlineKeyboardButton("❓ अन्य समस्या", callback_data="Other")],
+        ]
+    elif lang == "hin":
+        keyboard = [
+            [InlineKeyboardButton("💰 Deposit Issue", callback_data="Deposit")],
+            [InlineKeyboardButton("🏦 Withdrawal Issue", callback_data="Withdrawal")],
+            [InlineKeyboardButton("❓ Other Issue", callback_data="Other")],
+        ]
+    else:
+        keyboard = [
+            [InlineKeyboardButton("💰 Deposit Issue", callback_data="Deposit")],
+            [InlineKeyboardButton("🏦 Withdrawal Issue", callback_data="Withdrawal")],
+            [InlineKeyboardButton("❓ Other Issue", callback_data="Other")],
+        ]
     return InlineKeyboardMarkup(keyboard)
 
 # 🔹 /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "👋 Welcome to Lion Club Support!\nPlease select your issue:",
-        reply_markup=issue_keyboard()
+        "🌟 Welcome to Lion Club Support!\nPlease choose your preferred language:",
+        reply_markup=language_keyboard()
     )
 
-# 🔹 Button click handler
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# 🔹 Language selection handler
+async def language_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    lang_choice = query.data.replace("lang_", "")
+    context.user_data["lang"] = lang_choice
+    await query.message.reply_text(
+        "Please select your issue:" if lang_choice == "en" else
+        "कृपया अपनी समस्या चुनें:" if lang_choice == "hi" else
+        "Kripya apni problem choose karein:",
+        reply_markup=issue_keyboard(lang_choice)
+    )
+
+# 🔹 Issue selection handler
+async def issue_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     issue_type = query.data
     context.user_data["issue_type"] = issue_type
+    lang = context.user_data.get("lang", "en")
 
     messages = {
-        "Deposit": "💰 Deposit Issue Selected\nSend UID + Payment Screenshot + In-game Deposit Screenshot in one message.",
-        "Withdrawal": "🏦 Withdrawal Issue Selected\nSend UID + Withdrawal Screenshot in one message.",
-        "Other": "❓ Other Issue Selected\nDescribe your issue clearly with screenshots in one message.",
+        "Deposit": {
+            "en": "💰 Deposit Issue Selected.\nPlease send the following in one message:\n- 🆔 Your User ID (UID)\n- 💳 A payment screenshot\n- 🕹️ In-game deposit screenshot",
+            "hi": "💰 डिपॉज़िट समस्या चुनी गई है।\nकृपया एक ही मैसेज में निम्नलिखित भेजें:\n- 🆔 आपका यूज़र आईडी (UID)\n- 💳 पेमेंट की स्क्रीनशॉट\n- 🕹️ इन-गेम डिपॉज़िट की स्क्रीनशॉट",
+            "hin": "💰 Deposit Issue Selected.\nKripya ek hi message mein yeh sab bhejein:\n- 🆔 Aapka User ID (UID)\n- 💳 Payment ki screenshot\n- 🕹️ In-game deposit ki screenshot"
+        },
+        "Withdrawal": {
+            "en": "🏦 Withdrawal Issue Selected.\nPlease send the following in one message:\n- 🆔 Your User ID (UID)\n- 📸 Withdrawal screenshot",
+            "hi": "🏦 विदड्रॉवल समस्या चुनी गई है।\nकृपया एक ही मैसेज में निम्नलिखित भेजें:\n- 🆔 आपका यूज़र आईडी (UID)\n- 📸 विदड्रॉवल स्क्रीनशॉट",
+            "hin": "🏦 Withdrawal Issue Selected.\nKripya ek hi message mein yeh sab bhejein:\n- 🆔 Aapka User ID (UID)\n- 📸 Withdrawal ki screenshot"
+        },
+        "Other": {
+            "en": "❓ Other Issue Selected.\nPlease describe your issue in detail and include relevant screenshots.",
+            "hi": "❓ अन्य समस्या चुनी गई है।\nकृपया अपनी समस्या विस्तार से बताएं और ज़रूरी स्क्रीनशॉट भी भेजें।",
+            "hin": "❓ Other Issue Selected.\nKripya apni problem detail mein batayein aur screenshots bhejein."
+        }
     }
 
-    await query.message.reply_text(messages[issue_type])
+    await query.message.reply_text(messages[issue_type][lang])
 
 # 🔹 Forward user messages to support group
 async def forward_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    issue_type = context.user_data.get("issue_type", "Not selected")
+    issue_type = context.user_data.get("issue_type")
+    lang = context.user_data.get("lang", "en")
+
+    if not issue_type:
+        await update.message.reply_text(
+            "❗ Please select an issue first using /start." if lang=="en" else
+            "❗ कृपया पहले अपनी समस्या चुनें।" if lang=="hi" else
+            "❗ Kripya pehle problem choose karein."
+        )
+        return
 
     header = (
         f"📩 New Support Request\n\n"
@@ -60,26 +118,62 @@ async def forward_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         if update.message.text:
-            await context.bot.send_message(chat_id=SUPPORT_GROUP_ID, text=f"{header}\n{update.message.text}")
+            sent_msg = await context.bot.send_message(chat_id=SUPPORT_GROUP_ID, text=f"{header}\n{update.message.text}")
         else:
-            await context.bot.send_message(chat_id=SUPPORT_GROUP_ID, text=header)
+            sent_msg = await context.bot.send_message(chat_id=SUPPORT_GROUP_ID, text=header)
             await update.message.forward(chat_id=SUPPORT_GROUP_ID)
+        # Store mapping: group_message_id -> user_id
+        context.bot_data[sent_msg.message_id] = user.id
     except Exception as e:
         logging.error(f"Error forwarding message: {e}")
 
-    await update.message.reply_text("🙏 Thank you! Our support team will contact you soon.")
+    # Reset issue_type for next message
+    context.user_data.pop("issue_type", None)
+
+    thanks_msg = {
+        "en": "🙏 Thank you! Your request has been forwarded. Our team will contact you soon. 😊",
+        "hi": "🙏 धन्यवाद! आपकी रिक्वेस्ट भेज दी गई है। हमारी टीम जल्द ही आपसे संपर्क करेगी। 😊",
+        "hin": "🙏 Thank you! Aapki request forward kar di gayi hai. Hamari team jald hi aapse contact karegi. 😊"
+    }
+    await update.message.reply_text(thanks_msg[lang])
+
+# 🔹 Forward agent replies back to user
+async def reply_from_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Only process messages in the support group
+    if update.effective_chat.id != SUPPORT_GROUP_ID:
+        return
+
+    reply = update.message.reply_to_message
+    if not reply:
+        return  # Only consider replies
+
+    # Get user_id from bot_data mapping
+    user_id = context.bot_data.get(reply.message_id)
+    if not user_id:
+        return  # Could not find user mapping
+
+    # Forward agent reply to user
+    try:
+        if update.message.text:
+            await context.bot.send_message(chat_id=user_id, text=f"💬 Support Reply:\n{update.message.text}")
+        elif update.message.photo:
+            await update.message.forward(chat_id=user_id)
+        else:
+            await update.message.forward(chat_id=user_id)
+    except Exception as e:
+        logging.error(f"Error forwarding agent reply: {e}")
 
 # 🔹 Main function
 def main():
-    # Build application
     app = Application.builder().token(BOT_TOKEN).build()
-    
-    # Add handlers
+
+    # Handlers
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(button_handler))
+    app.add_handler(CallbackQueryHandler(language_handler, pattern="^lang_"))
+    app.add_handler(CallbackQueryHandler(issue_handler, pattern="^(Deposit|Withdrawal|Other)$"))
     app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, forward_message))
-    
-    # Start the bot
+    app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, reply_from_group))  # Group replies
+
     print("Bot is running...")
     app.run_polling(drop_pending_updates=True)
 
