@@ -1,4 +1,4 @@
-# bot_two_way.py
+# bot.py
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -73,21 +73,68 @@ async def issue_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["issue_type"] = issue_type
     lang = context.user_data.get("lang", "en")
 
+    # 🔹 Full welcome & instruction messages (as guided by you)
     messages = {
         "Deposit": {
-            "en": "💰 Deposit Issue Selected.\nPlease send the following in one message:\n- 🆔 Your User ID (UID)\n- 💳 A payment screenshot\n- 🕹️ In-game deposit screenshot",
-            "hi": "💰 डिपॉज़िट समस्या चुनी गई है।\nकृपया एक ही मैसेज में निम्नलिखित भेजें:\n- 🆔 आपका यूज़र आईडी (UID)\n- 💳 पेमेंट की स्क्रीनशॉट\n- 🕹️ इन-गेम डिपॉज़िट की स्क्रीनशॉट",
-            "hin": "💰 Deposit Issue Selected.\nKripya ek hi message mein yeh sab bhejein:\n- 🆔 Aapka User ID (UID)\n- 💳 Payment ki screenshot\n- 🕹️ In-game deposit ki screenshot"
+            "en": (
+                "💰 Deposit Issue Selected.\n"
+                "Send UID + Payment Screenshot + In-game Deposit Screenshot in one message.\n\n"
+                "This helps our support team process your request faster. 😊"
+            ),
+            "hi": (
+                "💰 डिपॉज़िट समस्या चुनी गई है।\n"
+                "कृपया एक ही मैसेज में निम्नलिखित भेजें:\n"
+                "- 🆔 आपका यूज़र आईडी (UID)\n"
+                "- 💳 पेमेंट की स्क्रीनशॉट\n"
+                "- 🕹️ इन-गेम डिपॉज़िट की स्क्रीनशॉट\n\n"
+                "इससे हमारी सपोर्ट टीम आपकी मदद जल्दी कर पाएगी। 😊"
+            ),
+            "hin": (
+                "💰 Deposit Issue Selected.\n"
+                "Kripya ek hi message mein yeh sab bhejein:\n"
+                "- 🆔 Aapka User ID (UID)\n"
+                "- 💳 Payment ki screenshot\n"
+                "- 🕹️ In-game deposit ki screenshot\n\n"
+                "Isse hamari support team aapki madad jaldi kar sakegi. 😊"
+            )
         },
         "Withdrawal": {
-            "en": "🏦 Withdrawal Issue Selected.\nPlease send the following in one message:\n- 🆔 Your User ID (UID)\n- 📸 Withdrawal screenshot",
-            "hi": "🏦 विदड्रॉवल समस्या चुनी गई है।\nकृपया एक ही मैसेज में निम्नलिखित भेजें:\n- 🆔 आपका यूज़र आईडी (UID)\n- 📸 विदड्रॉवल स्क्रीनशॉट",
-            "hin": "🏦 Withdrawal Issue Selected.\nKripya ek hi message mein yeh sab bhejein:\n- 🆔 Aapka User ID (UID)\n- 📸 Withdrawal ki screenshot"
+            "en": (
+                "🏦 Withdrawal Issue Selected.\n"
+                "Send UID + Withdrawal Screenshot in one message.\n\n"
+                "Our team will handle your withdrawal request quickly. 😊"
+            ),
+            "hi": (
+                "🏦 विदड्रॉवल समस्या चुनी गई है।\n"
+                "कृपया एक ही मैसेज में निम्नलिखित भेजें:\n"
+                "- 🆔 आपका यूज़र आईडी (UID)\n"
+                "- 📸 विदड्रॉवल स्क्रीनशॉट\n\n"
+                "हमारी टीम आपकी विदड्रॉवल रिक्वेस्ट जल्दी प्रोसेस करेगी। 😊"
+            ),
+            "hin": (
+                "🏦 Withdrawal Issue Selected.\n"
+                "Kripya ek hi message mein yeh sab bhejein:\n"
+                "- 🆔 Aapka User ID (UID)\n"
+                "- 📸 Withdrawal ki screenshot\n\n"
+                "Hamari team aapki withdrawal request jaldi process karegi. 😊"
+            )
         },
         "Other": {
-            "en": "❓ Other Issue Selected.\nPlease describe your issue in detail and include relevant screenshots.",
-            "hi": "❓ अन्य समस्या चुनी गई है।\nकृपया अपनी समस्या विस्तार से बताएं और ज़रूरी स्क्रीनशॉट भी भेजें।",
-            "hin": "❓ Other Issue Selected.\nKripya apni problem detail mein batayein aur screenshots bhejein."
+            "en": (
+                "❓ Other Issue Selected.\n"
+                "Describe your issue clearly with screenshots in one message.\n\n"
+                "Our team will respond as soon as possible. 😊"
+            ),
+            "hi": (
+                "❓ अन्य समस्या चुनी गई है।\n"
+                "कृपया अपनी समस्या विस्तार से और स्क्रीनशॉट के साथ भेजें।\n\n"
+                "हमारी टीम जल्द ही आपसे संपर्क करेगी। 😊"
+            ),
+            "hin": (
+                "❓ Other Issue Selected.\n"
+                "Kripya apni problem detail mein batayein aur screenshots ek hi message mein bhejein.\n\n"
+                "Hamari team jald hi aapse contact karegi. 😊"
+            )
         }
     }
 
@@ -118,16 +165,20 @@ async def forward_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         if update.message.text:
-            sent_msg = await context.bot.send_message(chat_id=SUPPORT_GROUP_ID, text=f"{header}\n{update.message.text}")
+            sent_msg = await context.bot.send_message(
+                chat_id=SUPPORT_GROUP_ID,
+                text=f"{header}\n{update.message.text}"
+            )
         else:
             sent_msg = await context.bot.send_message(chat_id=SUPPORT_GROUP_ID, text=header)
             await update.message.forward(chat_id=SUPPORT_GROUP_ID)
-        # Store mapping: group_message_id -> user_id
+
+        # 🔹 Store mapping: group_message_id -> user_id
         context.bot_data[sent_msg.message_id] = user.id
+
     except Exception as e:
         logging.error(f"Error forwarding message: {e}")
 
-    # Reset issue_type for next message
     context.user_data.pop("issue_type", None)
 
     thanks_msg = {
@@ -137,27 +188,25 @@ async def forward_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     }
     await update.message.reply_text(thanks_msg[lang])
 
-# 🔹 Forward agent replies back to user
+# 🔹 Forward agent replies to user (Swipe-to-reply works!)
 async def reply_from_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Only process messages in the support group
     if update.effective_chat.id != SUPPORT_GROUP_ID:
         return
 
     reply = update.message.reply_to_message
     if not reply:
-        return  # Only consider replies
+        return  # Only process replies
 
-    # Get user_id from bot_data mapping
     user_id = context.bot_data.get(reply.message_id)
     if not user_id:
-        return  # Could not find user mapping
+        return  # Could not find mapping
 
-    # Forward agent reply to user
     try:
         if update.message.text:
-            await context.bot.send_message(chat_id=user_id, text=f"💬 Support Reply:\n{update.message.text}")
-        elif update.message.photo:
-            await update.message.forward(chat_id=user_id)
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=f"💬 Support Reply:\n{update.message.text}"
+            )
         else:
             await update.message.forward(chat_id=user_id)
     except Exception as e:
@@ -172,7 +221,7 @@ def main():
     app.add_handler(CallbackQueryHandler(language_handler, pattern="^lang_"))
     app.add_handler(CallbackQueryHandler(issue_handler, pattern="^(Deposit|Withdrawal|Other)$"))
     app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, forward_message))
-    app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, reply_from_group))  # Group replies
+    app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, reply_from_group))  # Swipe-to-reply
 
     print("Bot is running...")
     app.run_polling(drop_pending_updates=True)
