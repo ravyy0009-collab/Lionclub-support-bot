@@ -1,265 +1,223 @@
-# bot.py
-import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    Application, CommandHandler, CallbackQueryHandler, MessageHandler,
-    ContextTypes, filters
-)
+# file: bot.py
 
-# 🔴 Configuration
-BOT_TOKEN = "8252550418:AAGknB7OFHtGisQBoGFEvfPWiW3uWB-4gcE"  # Replace with your token
+import logging
+from aiogram import Bot, Dispatcher, types, executor
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.dispatcher import FSMContext
+import datetime
+
+# ---------------- CONFIGURATION ----------------
+API_TOKEN = "8252550418:AAGknB7OFHtGisQBoGFEvfPWiW3uWB-4gcE"
 SUPPORT_GROUP_ID = -1003883601919  # Replace with your support group ID
 
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO
-)
+logging.basicConfig(level=logging.INFO)
 
-# 🔹 Language buttons
-def language_keyboard():
-    keyboard = [
-        [InlineKeyboardButton("English 🇬🇧", callback_data="lang_en")],
-        [InlineKeyboardButton("हिंदी 🇮🇳", callback_data="lang_hi")],
-        [InlineKeyboardButton("Hinglish 📝", callback_data="lang_hin")],
-    ]
-    return InlineKeyboardMarkup(keyboard)
+bot = Bot(token=API_TOKEN)
+storage = MemoryStorage()
+dp = Dispatcher(bot, storage=storage)
 
-# 🔹 Issue buttons
-def issue_keyboard(lang="en"):
-    if lang == "hi":
-        keyboard = [
-            [InlineKeyboardButton("💰 डिपॉज़िट समस्या", callback_data="Deposit")],
-            [InlineKeyboardButton("🏦 विदड्रॉवल समस्या", callback_data="Withdrawal")],
-            [InlineKeyboardButton("❓ अन्य समस्या", callback_data="Other")],
-        ]
-    elif lang == "hin":
-        keyboard = [
-            [InlineKeyboardButton("💰 Deposit Issue", callback_data="Deposit")],
-            [InlineKeyboardButton("🏦 Withdrawal Issue", callback_data="Withdrawal")],
-            [InlineKeyboardButton("❓ Other Issue", callback_data="Other")],
-        ]
-    else:
-        keyboard = [
-            [InlineKeyboardButton("💰 Deposit Issue", callback_data="Deposit")],
-            [InlineKeyboardButton("🏦 Withdrawal Issue", callback_data="Withdrawal")],
-            [InlineKeyboardButton("❓ Other Issue", callback_data="Other")],
-        ]
-    return InlineKeyboardMarkup(keyboard)
+# ---------------- STATES ----------------
+class SupportState(StatesGroup):
+    language = State()
+    issue_type = State()
+    details = State()
 
-# 🔹 /start command
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "🌟 Welcome to Lion Club Support!\nPlease choose your preferred language:",
-        reply_markup=language_keyboard()
-    )
+class AdminReplyState(StatesGroup):
+    replying_to_user = State()
 
-# 🔹 Language selection handler
-async def language_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    lang_choice = query.data.replace("lang_", "")
-    context.user_data["lang"] = lang_choice
-    await query.message.reply_text(
-        "Please select your issue:" if lang_choice == "en" else
-        "कृपया अपनी समस्या चुनें:" if lang_choice == "hi" else
-        "Kripya apni problem choose karein:",
-        reply_markup=issue_keyboard(lang_choice)
-    )
+# ---------------- TICKET COUNTER ----------------
+TICKET_COUNTER = 0
+def generate_ticket_id():
+    global TICKET_COUNTER
+    TICKET_COUNTER += 1
+    return f"TICKET-{TICKET_COUNTER:03d}"
 
-# 🔹 Issue selection handler with step-by-step messages & support wording
-async def issue_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    issue_type = query.data
-    context.user_data["issue_type"] = issue_type
-    lang = context.user_data.get("lang", "en")
-
-    messages = {
-        "Deposit": {
-            "en": (
-                "💰 Deposit Issue Selected.\n\n"
-                "Step 1️⃣: Send your UID.\n"
-                "Step 2️⃣: Send Payment Screenshot.\n"
-                "Step 3️⃣: Send In-game Deposit Screenshot.\n\n"
-                "Our support team will resolve your issue as soon as possible. "
-                "Please be patient, your patience is appreciated. 😊"
-            ),
-            "hi": (
-                "💰 डिपॉज़िट समस्या चुनी गई है।\n\n"
-                "Step 1️⃣: अपना यूज़र आईडी (UID) भेजें।\n"
-                "Step 2️⃣: पेमेंट की स्क्रीनशॉट भेजें।\n"
-                "Step 3️⃣: इन-गेम डिपॉज़िट की स्क्रीनशॉट भेजें।\n\n"
-                "हमारी सपोर्ट टीम आपकी समस्या जल्द से जल्द हल करेगी। "
-                "कृपया धैर्य रखें, आपका धैर्य सराहा जाता है। 😊"
-            ),
-            "hin": (
-                "💰 Deposit Issue Selected.\n\n"
-                "Step 1️⃣: Apna UID bhejein.\n"
-                "Step 2️⃣: Payment ki screenshot bhejein.\n"
-                "Step 3️⃣: In-game Deposit ki screenshot bhejein.\n\n"
-                "Hamari support team aapki issue jaldi resolve karegi. "
-                "Kripya patience rakhein, aapka patience appreciated hai. 😊"
-            )
-        },
-        "Withdrawal": {
-            "en": (
-                "🏦 Withdrawal Issue Selected.\n\n"
-                "Step 1️⃣: Send your UID.\n"
-                "Step 2️⃣: Send Withdrawal Screenshot.\n\n"
-                "Our support team will resolve your issue as soon as possible. "
-                "Please be patient, your patience is appreciated. 😊"
-            ),
-            "hi": (
-                "🏦 विदड्रॉवल समस्या चुनी गई है।\n\n"
-                "Step 1️⃣: अपना यूज़र आईडी (UID) भेजें।\n"
-                "Step 2️⃣: विदड्रॉवल की स्क्रीनशॉट भेजें।\n\n"
-                "हमारी सपोर्ट टीम आपकी समस्या जल्द से जल्द हल करेगी। "
-                "कृपया धैर्य रखें, आपका धैर्य सराहा जाता है। 😊"
-            ),
-            "hin": (
-                "🏦 Withdrawal Issue Selected.\n\n"
-                "Step 1️⃣: Apna UID bhejein.\n"
-                "Step 2️⃣: Withdrawal ki screenshot bhejein.\n\n"
-                "Hamari support team aapki issue jaldi resolve karegi. "
-                "Kripya patience rakhein, aapka patience appreciated hai. 😊"
-            )
-        },
-        "Other": {
-            "en": (
-                "❓ Other Issue Selected.\n\n"
-                "Step 1️⃣: Describe your issue clearly.\n"
-                "Step 2️⃣: Attach any screenshots if needed.\n\n"
-                "Our support team will resolve your issue as soon as possible. "
-                "Please be patient, your patience is appreciated. 😊"
-            ),
-            "hi": (
-                "❓ अन्य समस्या चुनी गई है।\n\n"
-                "Step 1️⃣: अपनी समस्या विस्तार से बताएं।\n"
-                "Step 2️⃣: स्क्रीनशॉट संलग्न करें यदि ज़रूरी हो।\n\n"
-                "हमारी सपोर्ट टीम आपकी समस्या जल्द से जल्द हल करेगी। "
-                "कृपया धैर्य रखें, आपका धैर्य सराहा जाता है। 😊"
-            ),
-            "hin": (
-                "❓ Other Issue Selected.\n\n"
-                "Step 1️⃣: Apni problem clearly batayein.\n"
-                "Step 2️⃣: Screenshots attach karein agar zaroori ho.\n\n"
-                "Hamari support team aapki issue jaldi resolve karegi. "
-                "Kripya patience rakhein, aapka patience appreciated hai. 😊"
-            )
-        }
+# ---------------- HELPER TEXTS ----------------
+LANG_TEXTS = {
+    "en": {
+        "select_issue": "Please select your issue 👇",
+        "deposit": "Deposit Problem",
+        "withdrawal": "Withdrawal Problem",
+        "other": "Other Problem",
+        "prompt_deposit": "Step 1️⃣: Send your UID\nStep 2️⃣: Payment screenshot\nStep 3️⃣: In-game deposit screenshot\n⚠️ Please send all files together in single message.",
+        "prompt_withdrawal": "Step 1️⃣: Send your UID\nStep 2️⃣: Withdrawal screenshot\n⚠️ Please send all files together in single message.",
+        "prompt_other": "Please describe your problem in detail.\n⚠️ Please send all files together in single message.",
+        "acknowledge": "🎉 Your ticket {ticket_id} has been received. Our team will resolve your issue as soon as possible. Thank you for contacting Line Club Bot!",
+        "resolved_user": "✅ Your issue {ticket_id} is resolved. Thank you for using our support!",
+        "welcome": "👋 Welcome! Please choose your language to get started."
+    },
+    "hinglish": {
+        "select_issue": "Kripya apni problem select karein 👇",
+        "deposit": "Deposit Ki Problem",
+        "withdrawal": "Withdrawal Ki Problem",
+        "other": "Other Problem",
+        "prompt_deposit": "Step 1️⃣: Apna UID bheje\nStep 2️⃣: Payment screenshot bheje\nStep 3️⃣: In-game deposit screenshot bheje\n⚠️ Kripya sari cheezein ek sath bhejein.",
+        "prompt_withdrawal": "Step 1️⃣: Apna UID bheje\nStep 2️⃣: Withdrawal screenshot bheje\n⚠️ Kripya sari cheezein ek sath bhejein.",
+        "prompt_other": "Kripya apni problem detail me batayein.\n⚠️ Kripya sari cheezein ek sath bhejein.",
+        "acknowledge": "🎉 Aapki ticket {ticket_id} receive ho gayi hai. Humari team aapka issue jaldi solve karegi. Thanks for contacting Line Club Bot!",
+        "resolved_user": "✅ Aapka issue {ticket_id} resolve ho gaya. Thank you for using our support!",
+        "welcome": "👋 Welcome! Start karne ke liye apni language choose karein."
+    },
+    "hi": {
+        "select_issue": "कृपया अपनी समस्या चुनें 👇",
+        "deposit": "डिपॉजिट समस्या",
+        "withdrawal": "विथड्रॉल समस्या",
+        "other": "अन्य समस्या",
+        "prompt_deposit": "स्टेप 1️⃣: अपना UID भेजें\nस्टेप 2️⃣: पेमेंट स्क्रीनशॉट\nस्टेप 3️⃣: गेम में डिपॉजिट स्क्रीनशॉट\n⚠️ कृपया सारी चीज़ें एक साथ भेजें।",
+        "prompt_withdrawal": "स्टेप 1️⃣: अपना UID भेजें\nस्टेप 2️⃣: विथड्रॉल स्क्रीनशॉट\n⚠️ कृपया सारी चीज़ें एक साथ भेजें।",
+        "prompt_other": "कृपया अपनी समस्या विस्तार से बताएं।\n⚠️ कृपया सारी चीज़ें एक साथ भेजें।",
+        "acknowledge": "🎉 आपकी टिकट {ticket_id} receive हो गई है। हमारी टीम आपकी समस्या जल्द हल करेगी। Line Club Bot से संपर्क करने के लिए धन्यवाद!",
+        "resolved_user": "✅ आपकी समस्या {ticket_id} resolve हो गई। हमारी सपोर्ट टीम का धन्यवाद!",
+        "welcome": "👋 स्वागत है! शुरू करने के लिए अपनी भाषा चुनें।"
     }
+}
 
-    await query.message.reply_text(messages[issue_type][lang])
-
-# 🔹 Forward user message + Reply + Resolve buttons
-async def forward_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    lang = context.user_data.get("lang", "en")
-    issue_type = context.user_data.get("issue_type")
-
-    if not issue_type:
-        await update.message.reply_text(
-            "❗ Please select an issue first using /start." if lang=="en" else
-            "❗ कृपया पहले अपनी समस्या चुनें।" if lang=="hi" else
-            "❗ Kripya pehle problem choose karein."
-        )
-        return
-
-    header = (
-        f"📩 New Support Request\n\n"
-        f"👤 Name: {user.first_name or ''} {user.last_name or ''}\n"
-        f"🔗 Username: @{user.username or 'Not available'}\n"
-        f"🆔 User ID: {user.id}\n"
-        f"📌 Issue Type: {issue_type}\n\n"
-        f"📝 User Message:"
+# ---------------- START ----------------
+@dp.message_handler(commands=["start"])
+async def cmd_start(message: types.Message):
+    keyboard = types.InlineKeyboardMarkup(row_width=1)
+    keyboard.add(
+        types.InlineKeyboardButton("English 🇺🇸", callback_data="lang_en"),
+        types.InlineKeyboardButton("Hinglish 🇮🇳", callback_data="lang_hinglish"),
+        types.InlineKeyboardButton("हिंदी 🇮🇳", callback_data="lang_hi")
     )
+    await message.answer(LANG_TEXTS["en"]["welcome"], reply_markup=keyboard)
+    await SupportState.language.set()
 
-    text = header
-    if update.message.text:
-        text += f"\n{update.message.text}"
+# ---------------- LANGUAGE SELECTION ----------------
+@dp.callback_query_handler(state=SupportState.language)
+async def process_language(callback: types.CallbackQuery, state: FSMContext):
+    lang = callback.data.split("_")[1]
+    await state.update_data(selected_lang=lang)
 
-    # Inline buttons: Reply + Resolve
-    keyboard = InlineKeyboardMarkup(
-        [
-            [
-                InlineKeyboardButton("💬 Reply to User", callback_data=f"reply_{user.id}"),
-                InlineKeyboardButton("✅ Resolve", callback_data=f"resolve_{user.id}")
-            ]
-        ]
+    texts = LANG_TEXTS[lang]
+    keyboard = types.InlineKeyboardMarkup(row_width=1)
+    keyboard.add(
+        types.InlineKeyboardButton(texts["withdrawal"], callback_data="issue_withdrawal"),
+        types.InlineKeyboardButton(texts["deposit"], callback_data="issue_deposit"),
+        types.InlineKeyboardButton(texts["other"], callback_data="issue_other")
     )
-
-    sent_msg = await context.bot.send_message(
-        chat_id=SUPPORT_GROUP_ID,
-        text=text,
+    await bot.edit_message_text(
+        texts["select_issue"], 
+        callback.from_user.id, 
+        callback.message.message_id, 
         reply_markup=keyboard
     )
+    await SupportState.issue_type.set()
 
-    context.bot_data[sent_msg.message_id] = user.id
-    context.user_data.pop("issue_type", None)
+# ---------------- ISSUE TYPE ----------------
+@dp.callback_query_handler(state=SupportState.issue_type)
+async def process_issue(callback: types.CallbackQuery, state: FSMContext):
+    issue = callback.data.split("_")[1]
+    await state.update_data(selected_issue=issue)
 
-    thanks_msg = {
-        "en": "🙏 Thank you! Your request has been forwarded. Our team will contact you soon. 😊",
-        "hi": "🙏 धन्यवाद! आपकी रिक्वेस्ट भेज दी गई है। हमारी टीम जल्द ही आपसे संपर्क करेगी। 😊",
-        "hin": "🙏 Thank you! Aapki request forward kar di gayi hai. Hamari team jald hi aapse contact karegi. 😊"
-    }
-    await update.message.reply_text(thanks_msg[lang])
+    data = await state.get_data()
+    lang = data.get("selected_lang")
+    texts = LANG_TEXTS[lang]
 
-# 🔹 Reply button click
-async def reply_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    user_id = int(query.data.replace("reply_", ""))
-    context.user_data["reply_to_user"] = user_id
-    await query.message.reply_text("📝 Please type your reply to the user now:")
+    if issue == "deposit":
+        prompt = texts["prompt_deposit"]
+    elif issue == "withdrawal":
+        prompt = texts["prompt_withdrawal"]
+    else:
+        prompt = texts["prompt_other"]
 
-# 🔹 Resolve button click
-async def resolve_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    user_id = int(query.data.replace("resolve_", ""))
-    try:
-        await context.bot.send_message(
-            chat_id=user_id,
-            text="✅ Your support request has been resolved by our team. Thank you for your patience!"
-        )
-    except Exception as e:
-        logging.error(f"Error notifying user about resolve: {e}")
-    await query.message.edit_text(f"{query.message.text}\n\n✅ RESOLVED by support agent.")
+    await bot.send_message(callback.from_user.id, prompt)
+    await SupportState.details.set()
 
-# 🔹 Agent types reply → send to user only
-async def agent_reply_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = context.user_data.get("reply_to_user")
-    if not user_id:
-        return  # Normal messages
+# ---------------- FINAL STEP: FORWARD + TICKET ID ----------------
+@dp.message_handler(state=SupportState.details, content_types=types.ContentTypes.ANY)
+async def final_step(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    lang = data.get("selected_lang")
+    issue = data.get("selected_issue")
+    texts = LANG_TEXTS[lang]
 
-    try:
-        if update.message.text:
-            await context.bot.send_message(
-                chat_id=user_id,
-                text=f"💬 Support Reply:\n{update.message.text}"
-            )
-        else:
-            await update.message.forward(chat_id=user_id)
-    except Exception as e:
-        logging.error(f"Error sending reply to user: {e}")
+    # Ticket ID
+    ticket_id = generate_ticket_id()
 
-    context.user_data.pop("reply_to_user", None)
-    await update.message.reply_text("✅ Reply sent to user successfully!")
+    # User Info
+    username = f"@{message.from_user.username}" if message.from_user.username else "No username"
+    full_name = f"{message.from_user.first_name or ''} {message.from_user.last_name or ''}".strip()
+    user_info = f"🆕 New Ticket: {ticket_id}\nUsername: {username}\nFull Name: {full_name}\nIssue: {issue}\nTime: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
-# 🔹 Main
-def main():
-    app = Application.builder().token(BOT_TOKEN).build()
+    # Group Inline Keyboard
+    group_kb = types.InlineKeyboardMarkup(row_width=2)
+    group_kb.add(
+        types.InlineKeyboardButton("Reply 💬", callback_data=f"group_reply_{message.from_user.id}_{ticket_id}"),
+        types.InlineKeyboardButton("Resolved ✅", callback_data=f"group_resolved_{message.from_user.id}_{ticket_id}")
+    )
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(language_handler, pattern="^lang_"))
-    app.add_handler(CallbackQueryHandler(issue_handler, pattern="^(Deposit|Withdrawal|Other)$"))
-    app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, forward_message))
-    app.add_handler(CallbackQueryHandler(reply_button_handler, pattern="^reply_"))
-    app.add_handler(CallbackQueryHandler(resolve_button_handler, pattern="^resolve_"))
-    app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, agent_reply_handler))
+    # MediaGroup handling
+    if message.media_group_id:
+        media = []
+        for msg in await bot.get_media_group(chat_id=message.chat.id, message_id=message.message_id):
+            if msg.content_type == "photo":
+                media.append(types.InputMediaPhoto(media=msg.photo[-1].file_id, caption=msg.caption))
+            elif msg.content_type == "video":
+                media.append(types.InputMediaVideo(media=msg.video.file_id, caption=msg.caption))
+            elif msg.content_type == "document":
+                await bot.send_document(SUPPORT_GROUP_ID, msg.document.file_id, caption=msg.caption)
+        if media:
+            await bot.send_message(SUPPORT_GROUP_ID, user_info, reply_markup=group_kb)
+            await bot.send_media_group(SUPPORT_GROUP_ID, media)
+    else:
+        await bot.send_message(SUPPORT_GROUP_ID, user_info, reply_markup=group_kb)
+        await message.forward(SUPPORT_GROUP_ID)
 
-    print("Bot is running...")
-    app.run_polling(drop_pending_updates=True)
+    # Auto Acknowledgment to user
+    await message.reply(texts["acknowledge"].format(ticket_id=ticket_id))
+    await state.finish()
 
+# ---------------- ADMIN REPLY ----------------
+@dp.callback_query_handler(lambda c: c.data.startswith("group_reply_"))
+async def group_reply(callback: types.CallbackQuery):
+    _, user_id, ticket_id = callback.data.split("_")[2:]
+    user_id = int(user_id)
+    state = dp.current_state(chat=callback.from_user.id, user=callback.from_user.id)
+    await state.set_state(AdminReplyState.replying_to_user.state)
+    await state.update_data(target_user_id=user_id, ticket_id=ticket_id)
+    await callback.message.answer(f"✏️ Please type your reply to send to user (Ticket {ticket_id})")
+    await callback.answer()
+
+@dp.message_handler(state=AdminReplyState.replying_to_user, content_types=types.ContentTypes.ANY)
+async def admin_reply_message(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    target_user_id = data.get("target_user_id")
+    ticket_id = data.get("ticket_id")
+    
+    # Forward media or text
+    if message.media_group_id:
+        media = []
+        for msg in await bot.get_media_group(chat_id=message.chat.id, message_id=message.message_id):
+            if msg.content_type == "photo":
+                media.append(types.InputMediaPhoto(media=msg.photo[-1].file_id, caption=msg.caption))
+            elif msg.content_type == "video":
+                media.append(types.InputMediaVideo(media=msg.video.file_id, caption=msg.caption))
+            elif msg.content_type == "document":
+                await bot.send_document(target_user_id, msg.document.file_id, caption=msg.caption)
+        if media:
+            await bot.send_media_group(target_user_id, media)
+    else:
+        await message.forward(target_user_id)
+
+    # Reply log in group
+    await message.reply(f"💬 Admin replied to {ticket_id} ✅")
+    await state.finish()
+
+# ---------------- RESOLVED ----------------
+@dp.callback_query_handler(lambda c: c.data.startswith("group_resolved_"))
+async def group_resolved(callback: types.CallbackQuery):
+    _, user_id, ticket_id = callback.data.split("_")[2:]
+    user_id = int(user_id)
+    # Send resolved message to user
+    for lang in LANG_TEXTS:
+        text = LANG_TEXTS[lang]["resolved_user"].format(ticket_id=ticket_id)
+        break  # Just use one language for resolved, can customize
+    await bot.send_message(user_id, text)
+    await callback.answer("Marked as resolved.")
+
+# ---------------- RUN ----------------
 if __name__ == "__main__":
-    main()
+    executor.start_polling(dp, skip_updates=True)
