@@ -7,7 +7,7 @@ from telegram.ext import (
 )
 
 # 🔴 Configuration
-BOT_TOKEN = "8252550418:AAFR5FJ2h3zFsmOfcqF-j8D_3KyM-tc2_II"  # Replace with your token
+BOT_TOKEN = "8252550418:AAGknB7OFHtGisQBoGFEvfPWiW3uWB-4gcE"  # Replace with your token
 SUPPORT_GROUP_ID = -1003883601919  # Replace with your support group ID
 
 logging.basicConfig(
@@ -66,7 +66,7 @@ async def language_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=issue_keyboard(lang_choice)
     )
 
-# 🔹 Issue selection handler with step-by-step messages
+# 🔹 Issue selection handler with step-by-step messages & support wording
 async def issue_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -81,21 +81,24 @@ async def issue_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "Step 1️⃣: Send your UID.\n"
                 "Step 2️⃣: Send Payment Screenshot.\n"
                 "Step 3️⃣: Send In-game Deposit Screenshot.\n\n"
-                "Our support team will process your request as soon as possible. 😊"
+                "Our support team will resolve your issue as soon as possible. "
+                "Please be patient, your patience is appreciated. 😊"
             ),
             "hi": (
                 "💰 डिपॉज़िट समस्या चुनी गई है।\n\n"
                 "Step 1️⃣: अपना यूज़र आईडी (UID) भेजें।\n"
                 "Step 2️⃣: पेमेंट की स्क्रीनशॉट भेजें।\n"
                 "Step 3️⃣: इन-गेम डिपॉज़िट की स्क्रीनशॉट भेजें।\n\n"
-                "हमारी सपोर्ट टीम आपकी रिक्वेस्ट जल्दी प्रोसेस करेगी। 😊"
+                "हमारी सपोर्ट टीम आपकी समस्या जल्द से जल्द हल करेगी। "
+                "कृपया धैर्य रखें, आपका धैर्य सराहा जाता है। 😊"
             ),
             "hin": (
                 "💰 Deposit Issue Selected.\n\n"
                 "Step 1️⃣: Apna UID bhejein.\n"
                 "Step 2️⃣: Payment ki screenshot bhejein.\n"
                 "Step 3️⃣: In-game Deposit ki screenshot bhejein.\n\n"
-                "Hamari support team aapki request jaldi process karegi. 😊"
+                "Hamari support team aapki issue jaldi resolve karegi. "
+                "Kripya patience rakhein, aapka patience appreciated hai. 😊"
             )
         },
         "Withdrawal": {
@@ -103,19 +106,22 @@ async def issue_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "🏦 Withdrawal Issue Selected.\n\n"
                 "Step 1️⃣: Send your UID.\n"
                 "Step 2️⃣: Send Withdrawal Screenshot.\n\n"
-                "Our support team will process your withdrawal as soon as possible. 😊"
+                "Our support team will resolve your issue as soon as possible. "
+                "Please be patient, your patience is appreciated. 😊"
             ),
             "hi": (
                 "🏦 विदड्रॉवल समस्या चुनी गई है।\n\n"
                 "Step 1️⃣: अपना यूज़र आईडी (UID) भेजें।\n"
                 "Step 2️⃣: विदड्रॉवल की स्क्रीनशॉट भेजें।\n\n"
-                "हमारी सपोर्ट टीम आपकी रिक्वेस्ट जल्दी प्रोसेस करेगी। 😊"
+                "हमारी सपोर्ट टीम आपकी समस्या जल्द से जल्द हल करेगी। "
+                "कृपया धैर्य रखें, आपका धैर्य सराहा जाता है। 😊"
             ),
             "hin": (
                 "🏦 Withdrawal Issue Selected.\n\n"
                 "Step 1️⃣: Apna UID bhejein.\n"
                 "Step 2️⃣: Withdrawal ki screenshot bhejein.\n\n"
-                "Hamari support team aapki request jaldi process karegi. 😊"
+                "Hamari support team aapki issue jaldi resolve karegi. "
+                "Kripya patience rakhein, aapka patience appreciated hai. 😊"
             )
         },
         "Other": {
@@ -123,26 +129,29 @@ async def issue_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "❓ Other Issue Selected.\n\n"
                 "Step 1️⃣: Describe your issue clearly.\n"
                 "Step 2️⃣: Attach any screenshots if needed.\n\n"
-                "Our support team will respond as soon as possible. 😊"
+                "Our support team will resolve your issue as soon as possible. "
+                "Please be patient, your patience is appreciated. 😊"
             ),
             "hi": (
                 "❓ अन्य समस्या चुनी गई है।\n\n"
                 "Step 1️⃣: अपनी समस्या विस्तार से बताएं।\n"
                 "Step 2️⃣: स्क्रीनशॉट संलग्न करें यदि ज़रूरी हो।\n\n"
-                "हमारी टीम जल्द ही आपसे संपर्क करेगी। 😊"
+                "हमारी सपोर्ट टीम आपकी समस्या जल्द से जल्द हल करेगी। "
+                "कृपया धैर्य रखें, आपका धैर्य सराहा जाता है। 😊"
             ),
             "hin": (
                 "❓ Other Issue Selected.\n\n"
                 "Step 1️⃣: Apni problem clearly batayein.\n"
                 "Step 2️⃣: Screenshots attach karein agar zaroori ho.\n\n"
-                "Hamari support team jald hi aapse contact karegi. 😊"
+                "Hamari support team aapki issue jaldi resolve karegi. "
+                "Kripya patience rakhein, aapka patience appreciated hai. 😊"
             )
         }
     }
 
     await query.message.reply_text(messages[issue_type][lang])
 
-# 🔹 Forward user message + Reply button
+# 🔹 Forward user message + Reply + Resolve buttons
 async def forward_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     lang = context.user_data.get("lang", "en")
@@ -169,9 +178,14 @@ async def forward_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.text:
         text += f"\n{update.message.text}"
 
-    # Inline Reply button
+    # Inline buttons: Reply + Resolve
     keyboard = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("💬 Reply to User", callback_data=f"reply_{user.id}")]]
+        [
+            [
+                InlineKeyboardButton("💬 Reply to User", callback_data=f"reply_{user.id}"),
+                InlineKeyboardButton("✅ Resolve", callback_data=f"resolve_{user.id}")
+            ]
+        ]
     )
 
     sent_msg = await context.bot.send_message(
@@ -197,6 +211,20 @@ async def reply_button_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     user_id = int(query.data.replace("reply_", ""))
     context.user_data["reply_to_user"] = user_id
     await query.message.reply_text("📝 Please type your reply to the user now:")
+
+# 🔹 Resolve button click
+async def resolve_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = int(query.data.replace("resolve_", ""))
+    try:
+        await context.bot.send_message(
+            chat_id=user_id,
+            text="✅ Your support request has been resolved by our team. Thank you for your patience!"
+        )
+    except Exception as e:
+        logging.error(f"Error notifying user about resolve: {e}")
+    await query.message.edit_text(f"{query.message.text}\n\n✅ RESOLVED by support agent.")
 
 # 🔹 Agent types reply → send to user only
 async def agent_reply_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -227,6 +255,7 @@ def main():
     app.add_handler(CallbackQueryHandler(issue_handler, pattern="^(Deposit|Withdrawal|Other)$"))
     app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, forward_message))
     app.add_handler(CallbackQueryHandler(reply_button_handler, pattern="^reply_"))
+    app.add_handler(CallbackQueryHandler(resolve_button_handler, pattern="^resolve_"))
     app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, agent_reply_handler))
 
     print("Bot is running...")
